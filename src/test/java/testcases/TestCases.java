@@ -22,7 +22,7 @@ public class TestCases extends BaseTest {
         SignInScreen signInScreen = new SignInScreen(driver);
 
         welcomeScreen.signInButton.click();
-        signInScreen.inputCredentials("artismocans@gmail.com", "abcd1234");
+        signInScreen.inputCredentials("invalidGmail@gmail.com", "abcd1234");
         signInScreen.signIn.click();
 
         Assert.assertTrue(signInScreen.isLoginInvalid());
