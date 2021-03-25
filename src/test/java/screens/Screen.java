@@ -13,7 +13,7 @@ public class Screen {
     WaitUtils waitUtils;
     protected final AppiumDriver driver;
 
-    protected Screen(AppiumDriver driver){
+    protected Screen(AppiumDriver driver) {
         this.driver = driver;
         initElements();
         loadProperties();

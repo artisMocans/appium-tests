@@ -3,53 +3,43 @@ package testcases;
 import io.appium.java_client.AppiumDriver;
 import io.appium.java_client.remote.AndroidMobileCapabilityType;
 import io.appium.java_client.remote.MobileCapabilityType;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.remote.Augmenter;
+import io.appium.java_client.service.local.AppiumDriverLocalService;
+import io.appium.java_client.service.local.AppiumServiceBuilder;
+import io.appium.java_client.service.local.flags.GeneralServerFlag;
 import org.openqa.selenium.remote.DesiredCapabilities;
-import org.testng.ITestResult;
-import org.testng.annotations.*;
 import utils.PropertyUtils;
-import utils.ScreenshotUtility;
-import utils.WaitUtils;
 
-import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.concurrent.TimeUnit;
 
-@Listeners({ScreenshotUtility.class})
-public abstract class BaseTest {
+public class TestRunHelper {
 
     public static AppiumDriver driver;
     public final static String APPIUM_SERVER_URL = PropertyUtils.getProperty("appium.server.url", "http://127.0.0.1:4723/wd/hub");
     public final static int IMPLICIT_WAIT = PropertyUtils.getIntegerProperty("implicitWait", 30);
-    public static WaitUtils waitUtils = new WaitUtils();
+    AppiumDriverLocalService appiumDriverLocalService;
 
-
-    @BeforeMethod
-    public void setUpAppium() throws MalformedURLException {
+    public AppiumDriver setUpAppium() throws MalformedURLException {
         DesiredCapabilities capabilities = new DesiredCapabilities();
         setDesiredCapabilitiesForAndroid(capabilities);
         driver = new AppiumDriver(new URL(APPIUM_SERVER_URL), capabilities);
+
+        DesiredCapabilities desiredCapabilities = getDesiredCapabilities();
+        AppiumServiceBuilder builder = new AppiumServiceBuilder();
+        builder.withIPAddress("127.0.0.1");
+        builder.usingAnyFreePort();
+        builder.withCapabilities(desiredCapabilities);
+        builder.withArgument(GeneralServerFlag.SESSION_OVERRIDE);
+        builder.withArgument(GeneralServerFlag.LOG_LEVEL, "error");
+
+        appiumDriverLocalService = AppiumDriverLocalService.buildService(builder);
+        appiumDriverLocalService.start();
+        return driver;
     }
 
-    @BeforeTest
-    public abstract void setUpPage();
-
-
-    @AfterMethod(alwaysRun = true)
-    public void afterMethod(final ITestResult result) {
-        String fileName = result.getTestClass().getName() + "_" + result.getName();
-        System.out.println("Test Case: [" + fileName + "] executed..!");
-    }
-
-    @AfterClass
-    public void afterClass() {
-    }
-
-    @AfterSuite
-    public void tearDownAppium() {
-        quitDriver();
+    public void tearDownAppium(AppiumDriver driver) {
+        driver.quit();
+        appiumDriverLocalService.stop();
     }
 
     private void setDesiredCapabilitiesForAndroid(DesiredCapabilities desiredCapabilities) {
@@ -72,25 +62,10 @@ public abstract class BaseTest {
         desiredCapabilities.setCapability(AndroidMobileCapabilityType.AUTO_GRANT_PERMISSIONS, true);
     }
 
-    public static WebDriver getScreenshotableWebDriver() {
-        final WebDriver augmentedDriver = new Augmenter().augment(driver);
-        return augmentedDriver;
-    }
-
-    private static void setTimeOuts(AppiumDriver driver) {
-        driver.manage().timeouts().implicitlyWait(IMPLICIT_WAIT, TimeUnit.SECONDS);
-    }
-
-    private static String getAbsolutePath(String appRelativePath) {
-        File file = new File(appRelativePath);
-        return file.getAbsolutePath();
-    }
-
-    private void quitDriver() {
-        try {
-            driver.quit();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    private DesiredCapabilities getDesiredCapabilities() {
+        DesiredCapabilities desiredCapabilities = new DesiredCapabilities();
+        desiredCapabilities.setCapability(MobileCapabilityType.FULL_RESET, false);
+        desiredCapabilities.setCapability(MobileCapabilityType.NO_RESET, true);
+        return desiredCapabilities;
     }
 }
